@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+{% block title %}Logbook{% endblock %}
+
+{% block content %}
+<h1>Diagnosis Logbook</h1>
+<p class="subtitle">A complete history of all your plant diagnoses.</p>
+
+<div class="card filter-card">
+    <form method="GET" action="{{ url_for('logbook') }}" class="filter-form">
+        <div class="filter-group">
+            <label for="disease">Disease</label>
+            <select name="disease" id="disease">
+                <option value="">All Diseases</option>
+                {% for name in class_names %}
+                <option value="{{ name }}" {% if current_disease == name %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="status">Status</label>
+            <select name="status" id="status">
+                <option value="">Any Status</option>
+                <option value="accurate" {% if current_status == 'accurate' %}selected{% endif %}>Confirmed Accurate</option>
+                <option value="inaccurate" {% if current_status == 'inaccurate' %}selected{% endif %}>Reported Inaccurate</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="start_date">From</label>
+            <input type="date" name="start_date" id="start_date" value="{{ start_date }}">
+        </div>
+
+        <div class="filter-group">
+            <label for="end_date">To</label>
+            <input type="date" name="end_date" id="end_date" value="{{ end_date }}">
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{{ url_for('logbook') }}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="logbook-container">
+    {% for diagnosis in diagnoses %}
+    <div class="card log-item">
+        <div class="log-image">
+            <img src="{{ url_for('static', filename=diagnosis.image_path) }}" alt="Diagnosis image">
+        </div>
+        <div class="log-content">
+            <div class="log-header">
+                <h3>{{ diagnosis.plant_identifier }}: {{ diagnosis.disease_name }}</h3>
+                <span class="confidence-pill">{{ diagnosis.confidence }}</span>
+            </div>
+            <p class="log-date">
+                <i class="fa-solid fa-calendar-alt"></i> {{ diagnosis.timestamp.strftime('%B %d, %Y at %I:%M %p') }}
+            </p>
+            
+            {% if diagnosis.confirmed_accurate %}
+                <span style="color: var(--dark-green); font-size: 13px; font-weight: 600;"><i class="fa-solid fa-check-circle"></i> Verified Accurate</span>
+            {% elif diagnosis.reported_as_inaccurate %}
+                <span style="color: var(--danger-color); font-size: 13px; font-weight: 600;"><i class="fa-solid fa-exclamation-circle"></i> Reported Issue</span>
+            {% endif %}
+
+            <div class="log-details" style="margin-top: 8px;">
+                <p><strong>AI Summary:</strong> {{ diagnosis.suggestions.description | truncate(120) }}</p>
+            </div>
+            <div class="log-actions">
+                <a href="{{ url_for('results', diagnosis_id=diagnosis._id) }}" class="btn btn-secondary">View</a>
+                <a href="{{ url_for('follow_up_diagnose', original_diagnosis_id=diagnosis._id) }}" class="btn btn-primary">
+                    <i class="fa-solid fa-camera-rotate"></i> Follow-up
+                </a>
+                
+                <form method="POST" action="{{ url_for('delete_diagnosis', diagnosis_id=diagnosis._id) }}" class="delete-log-form">
+                    <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card empty-state-full">
+        <i class="fa-solid fa-filter"></i> 
+        <p>No diagnoses match your filters.</p>
+        <a href="{{ url_for('logbook') }}">Clear Filters</a>
+    </div>
+    {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+    <a href="{{ url_for('logbook', page=page-1, disease=current_disease, status=current_status, start_date=start_date, end_date=end_date) }}" class="page-btn"><i class="fa-solid fa-chevron-left"></i> Prev</a>
+    {% endif %}
+
+    <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+
+    {% if page < total_pages %}
+    <a href="{{ url_for('logbook', page=page+1, disease=current_disease, status=current_status, start_date=start_date, end_date=end_date) }}" class="page-btn">Next <i class="fa-solid fa-chevron-right"></i></a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

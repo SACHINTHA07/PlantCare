@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+{% block title %}New Diagnosis{% endblock %}
+
+{% block content %}
+<h1>New Diagnosis</h1>
+<p class="subtitle">Use your camera to take a photo or upload an image from your gallery.</p>
+<div class="card">
+    <form method="post" enctype="multipart/form-data" class="upload-form">
+        {% if parent_diagnosis_id %}
+        <input type="hidden" name="parent_diagnosis_id" value="{{ parent_diagnosis_id }}">
+        {% endif %}
+        
+        <div class="form-group" style="margin-bottom: 24px;">
+            <label for="plant_identifier">Plant Name or Identifier</label>
+            <input type="text" id="plant_identifier" name="plant_identifier" placeholder="e.g., Backyard Banana Tree" value="{{ default_identifier if default_identifier else '' }}" required>
+        </div>
+        
+        <input type="file" name="file" id="file-input" accept="image/*" required style="display: none;">
+
+        <div class="upload-area" id="upload-area">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <p>Drag and drop your plant image here</p>
+            <div class="upload-buttons">
+                <button type="button" class="btn btn-primary" id="camera-btn">
+                    <i class="fa-solid fa-camera"></i> Camera
+                </button>
+                <button type="button" class="btn btn-secondary" id="gallery-btn">
+                    <i class="fa-solid fa-image"></i> Gallery
+                </button>
+            </div>
+        </div>
+
+        <div class="image-preview-box" id="image-preview">
+            <button type="button" class="change-image-btn" id="change-image-btn">&times;</button>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="diagnose-btn">Diagnose Plant</button>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('file-input');
+    const uploadArea = document.getElementById('upload-area');
+    const imagePreview = document.getElementById('image-preview');
+    const cameraBtn = document.getElementById('camera-btn');
+    const galleryBtn = document.getElementById('gallery-btn');
+    const changeBtn = document.getElementById('change-image-btn');
+    const diagnoseBtn = document.getElementById('diagnose-btn');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const uploadForm = document.querySelector('.upload-form');
+
+    // 1. Button Click Handlers
+    cameraBtn.addEventListener('click', function() {
+        fileInput.setAttribute('capture', 'environment');
+        fileInput.click();
+    });
+
+    galleryBtn.addEventListener('click', function() {
+        fileInput.removeAttribute('capture');
+        fileInput.click();
+    });
+
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function() {
+            // Show the loading screen when form is sent
+            loadingOverlay.classList.add('active');
+        });
+    }
+
+    // 2. "Change Image" Button Handler
+    changeBtn.addEventListener('click', function() {
+        fileInput.value = ''; // Reset the file input
+        imagePreview.style.display = 'none';
+        uploadArea.style.display = 'flex';
+        diagnoseBtn.style.marginTop = '0';
+    });
+
+    // 3. Image Preview & Validation Logic
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        
+        // Validation: Check if it is an image
+        if (file && !file.type.startsWith('image/')) {
+            if (window.showAlertModal) {
+                window.showAlertModal('Invalid File', 'Please upload a valid image file (JPG, PNG).');
+            } else {
+                alert('Please upload a valid image file (JPG, PNG).');
+            }
+            this.value = ''; // Clear input
+            return;
+        }
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Show preview and hide dropzone
+                imagePreview.style.backgroundImage = `url(${e.target.result})`;
+                imagePreview.style.display = 'block';
+                uploadArea.style.display = 'none';
+                diagnoseBtn.style.marginTop = '16px';
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Drag and Drop Logic
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => {
+            uploadArea.style.borderColor = 'var(--primary-green)';
+            uploadArea.style.backgroundColor = '#f1f3f5';
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => {
+            uploadArea.style.borderColor = ''; // Revert to CSS default
+            uploadArea.style.backgroundColor = ''; 
+        }, false);
+    });
+
+    uploadArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        if (files.length > 0) {
+            fileInput.files = files; // Assign dropped files to hidden input
+            const event = new Event('change');
+            fileInput.dispatchEvent(event);
+        }
+    }
+});
+</script>
+{% endblock %}

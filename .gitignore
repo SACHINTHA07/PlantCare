@@ -1,0 +1,8 @@
+venv/
+
+.env
+credentials.json
+Dockerfile
+.dockerignore
+__pycache__/
+*.pyc
