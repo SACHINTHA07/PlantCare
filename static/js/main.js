@@ -86,12 +86,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // fade-out effect
                 msg.style.transition = "opacity 0.5s ease";
                 msg.style.opacity = "0";
-                
                 setTimeout(() => msg.remove(), 500);
             });
-        }, 7000);
+        }, 5000);
+
     }
-    // FullCalendar Initialization
+
+    // FullCalendar Initialization 
     const calendarEl = document.getElementById('calendar');
     if (calendarEl) {
         const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -129,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
         calendar.render();
     }
 
-    // Add Full Schedule to Calendar
+    // Add Full Schedule to Calendar 
     const addScheduleBtn = document.getElementById('add-schedule-btn');
     if (addScheduleBtn) {
         addScheduleBtn.addEventListener('click', function() {
@@ -182,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Toggle Task Completion on Dashboard
+    // Toggle Task Completion
     const taskCheckboxes = document.querySelectorAll('.task-item input[type="checkbox"]');
     taskCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
@@ -226,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Delete Logbook or User Entry Confirmation (for admin/logbook)
+    // Delete Logbook / User Confirmation
     document.querySelectorAll('.delete-log-form').forEach(form => {
         form.addEventListener('submit', function(event) {
             event.preventDefault(); 
@@ -281,7 +282,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('edit-crop_location').value = cropLocation;
         document.getElementById('edit-address').value = address;
 
+        // Trigger select2 update if it exists
         $('#edit-country').val(country).trigger('change');
+        $('#edit-role').val(role).trigger('change');
 
         editUserOverlay.style.display = 'flex';
         setTimeout(() => editUserOverlay.classList.add('active'), 10);
@@ -410,17 +413,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
-    // Admin Charts
+    // Admin Charts (Chart.js)
     const pieChartCtx = document.getElementById('feedbackPieChart');
     const barChartCtx = document.getElementById('inaccuracyBarChart');
 
-    // Only run this code if we are on a page with the charts
     if (pieChartCtx || barChartCtx) {
         fetch('/api/admin/chart_data')
             .then(response => response.json())
             .then(data => {
-                
-                // 1. Build Pie Chart
+                // Pie Chart
                 if (pieChartCtx && data.pieData && (data.pieData.counts[0] > 0 || data.pieData.counts[1] > 0)) {
                     new Chart(pieChartCtx, {
                         type: 'doughnut',
@@ -428,31 +429,22 @@ document.addEventListener('DOMContentLoaded', function() {
                             labels: data.pieData.labels,
                             datasets: [{
                                 data: data.pieData.counts,
-                                backgroundColor: [
-                                    'rgba(76, 175, 80, 0.7)',  
-                                    'rgba(220, 53, 69, 0.7)'   
-                                ],
-                                borderColor: [
-                                    '#4CAF50',
-                                    '#dc3545'
-                                ],
+                                backgroundColor: ['rgba(76, 175, 80, 0.7)', 'rgba(220, 53, 69, 0.7)'],
+                                borderColor: ['#4CAF50', '#dc3545'],
                                 borderWidth: 1
                             }]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: {
-                                legend: { position: 'bottom' }
-                            }
+                            plugins: { legend: { position: 'bottom' } }
                         }
                     });
                 } else if (pieChartCtx) {
-                    // Show a message if no data
                     pieChartCtx.parentElement.innerHTML = '<p class="empty-state" style="padding-top: 50px;">No feedback data to display.</p>';
                 }
 
-                // 2. Build Bar Chart
+                // Bar Chart
                 if (barChartCtx && data.barData && data.barData.labels.length > 0) {
                     new Chart(barChartCtx, {
                         type: 'bar',
@@ -467,136 +459,117 @@ document.addEventListener('DOMContentLoaded', function() {
                             }]
                         },
                         options: {
-                            indexAxis: 'y', // Makes it a horizontal bar chart
+                            indexAxis: 'y',
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: { 
-                                legend: { display: false },
-                                title: { display: false }
-                            },
-                            scales: {
-                                x: {
-                                    beginAtZero: true,
-                                    ticks: {
-                                        stepSize: 1 // Only show whole numbers
-                                    }
-                                }
-                            }
+                            plugins: { legend: { display: false }, title: { display: false } },
+                            scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
                         }
                     });
                 } else if (barChartCtx) {
-                    // Show a message if no data
                     barChartCtx.parentElement.innerHTML = '<p class="empty-state" style="padding-top: 50px;">No inaccuracy reports to display.</p>';
                 }
             })
             .catch(error => console.error('Error fetching chart data:', error));
     }
 
+    // jQuery Ready Function for Select2
     $(document).ready(function() {
     
-    // Define the Country List (Name + ISO Code)
-    const countries = [
-        { code: "lk", name: "Sri Lanka" },
-        { code: "us", name: "United States" },
-        { code: "gb", name: "United Kingdom" },
-        { code: "ca", name: "Canada" },
-        { code: "au", name: "Australia" },
-        { code: "in", name: "India" },
-        { code: "cn", name: "China" },
-        { code: "jp", name: "Japan" },
-        { code: "de", name: "Germany" },
-        { code: "fr", name: "France" },
-        { code: "br", name: "Brazil" },
-        { code: "ru", name: "Russia" },
-        { code: "za", name: "South Africa" },
-        { code: "nz", name: "New Zealand" },
-        { code: "sg", name: "Singapore" },
-        { code: "my", name: "Malaysia" },
-        { code: "th", name: "Thailand" },
-        { code: "id", name: "Indonesia" },
-        { code: "ph", name: "Philippines" },
-        { code: "vn", name: "Vietnam" },
-        { code: "kr", name: "South Korea" },
-        { code: "it", name: "Italy" },
-        { code: "es", name: "Spain" },
-        { code: "nl", name: "Netherlands" },
-        { code: "ch", name: "Switzerland" },
-        { code: "se", name: "Sweden" },
-        { code: "no", name: "Norway" },
-        { code: "dk", name: "Denmark" },
-        { code: "fi", name: "Finland" },
-        { code: "ie", name: "Ireland" },
-        { code: "be", name: "Belgium" },
-        { code: "at", name: "Austria" },
-        { code: "pt", name: "Portugal" },
-        { code: "pl", name: "Poland" },
-        { code: "gr", name: "Greece" },
-        { code: "tr", name: "Turkey" },
-        { code: "eg", name: "Egypt" },
-        { code: "ae", name: "United Arab Emirates" },
-        { code: "sa", name: "Saudi Arabia" },
-        { code: "pk", name: "Pakistan" },
-        { code: "bd", name: "Bangladesh" },
-        { code: "np", name: "Nepal" },
-        { code: "mv", name: "Maldives" },
-        { code: "mx", name: "Mexico" },
-        { code: "ar", name: "Argentina" },
-        { code: "cl", name: "Chile" },
-        { code: "co", name: "Colombia" },
-        { code: "pe", name: "Peru" }
-        
-    ];
+        const countries = [
+            { code: "lk", name: "Sri Lanka" },
+            { code: "us", name: "United States" },
+            { code: "gb", name: "United Kingdom" },
+            { code: "ca", name: "Canada" },
+            { code: "au", name: "Australia" },
+            { code: "in", name: "India" },
+            { code: "cn", name: "China" },
+            { code: "jp", name: "Japan" },
+            { code: "de", name: "Germany" },
+            { code: "fr", name: "France" },
+            { code: "br", name: "Brazil" },
+            { code: "ru", name: "Russia" },
+            { code: "za", name: "South Africa" },
+            { code: "nz", name: "New Zealand" },
+            { code: "sg", name: "Singapore" },
+            { code: "my", name: "Malaysia" },
+            { code: "th", name: "Thailand" },
+            { code: "id", name: "Indonesia" },
+            { code: "ph", name: "Philippines" },
+            { code: "vn", name: "Vietnam" },
+            { code: "kr", name: "South Korea" },
+            { code: "it", name: "Italy" },
+            { code: "es", name: "Spain" },
+            { code: "nl", name: "Netherlands" },
+            { code: "ch", name: "Switzerland" },
+            { code: "se", name: "Sweden" },
+            { code: "no", name: "Norway" },
+            { code: "dk", name: "Denmark" },
+            { code: "fi", name: "Finland" },
+            { code: "ie", name: "Ireland" },
+            { code: "be", name: "Belgium" },
+            { code: "at", name: "Austria" },
+            { code: "pt", name: "Portugal" },
+            { code: "pl", name: "Poland" },
+            { code: "gr", name: "Greece" },
+            { code: "tr", name: "Turkey" },
+            { code: "eg", name: "Egypt" },
+            { code: "ae", name: "United Arab Emirates" },
+            { code: "sa", name: "Saudi Arabia" },
+            { code: "pk", name: "Pakistan" },
+            { code: "bd", name: "Bangladesh" },
+            { code: "np", name: "Nepal" },
+            { code: "mv", name: "Maldives" },
+            { code: "mx", name: "Mexico" },
+            { code: "ar", name: "Argentina" },
+            { code: "cl", name: "Chile" },
+            { code: "co", name: "Colombia" },
+            { code: "pe", name: "Peru" }
+        ];
 
-    // Custom Function to Format Flags
-    function formatCountry(state) {
-        if (!state.id) { return state.text; } // Return text for placeholder
-        
-        // Use the 'data-iso' attribute
-        var isoCode = $(state.element).data('iso'); 
-        if(!isoCode) return state.text;
-
-        // Construct the HTML with the flag icon
-        var $state = $(
-            '<span><span class="fi fi-' + isoCode + '"></span> ' + state.text + '</span>'
-        );
-        return $state;
-    }
-
-    // Initialize Select2 on all elements with class 'country-select'
-    $('.country-select').each(function() {
-        var $select = $(this);
-        
-        // Populate options
-        countries.forEach(function(country) {
-            var option = new Option(country.name, country.name); // Value = Name, Text = Name
-            $(option).attr('data-iso', country.code); // Store ISO code for the flag
-            $select.append(option);
-        });
-
-        // Check if there is a pre-selected value (for Account/Edit pages)
-        var selectedValue = $select.data('selected');
-        if(selectedValue) {
-            $select.val(selectedValue);
-        } else {
-            $select.val(null); // No selection by default
+        function formatCountry(state) {
+            if (!state.id) { return state.text; } 
+            var isoCode = $(state.element).data('iso'); 
+            if(!isoCode) return state.text;
+            var $state = $('<span><span class="fi fi-' + isoCode + '"></span> ' + state.text + '</span>');
+            return $state;
         }
 
-        // Determine parent (Fix for Modals)
-        var dropdownParent = $('body');
-        if ($select.closest('.modal-box').length) {
-            dropdownParent = $select.closest('.modal-box');
-        }
-
-        // Apply Select2
-        $select.select2({
-            templateResult: formatCountry,
-            templateSelection: formatCountry,
-            placeholder: "Select a country",
-            allowClear: true,
-            dropdownParent: dropdownParent,
-            width: '100%'
+        // Country Selects
+        $('.country-select').each(function() {
+            var $select = $(this);
+            countries.forEach(function(country) {
+                var option = new Option(country.name, country.name); 
+                $(option).attr('data-iso', country.code); 
+                $select.append(option);
+            });
+            var selectedValue = $select.data('selected');
+            if(selectedValue) {
+                $select.val(selectedValue);
+            } else {
+                $select.val(null); 
+            }
+            var dropdownParent = $('body');
+            if ($select.closest('.modal-box').length) {
+                dropdownParent = $select.closest('.modal-box');
+            }
+            $select.select2({
+                templateResult: formatCountry,
+                templateSelection: formatCountry,
+                placeholder: "Select a country",
+                allowClear: true,
+                dropdownParent: dropdownParent,
+                width: '100%'
+            });
         });
+
+        // Role Selects
+        $('select[name="role"], #edit-role').select2({
+            minimumResultsForSearch: Infinity, 
+            width: '100%',
+            dropdownParent: $('#role').closest('.modal-box').length ? $('#role').closest('.modal-box') : $('body')
+        });
+
     });
-});
 
-}); 
+});
