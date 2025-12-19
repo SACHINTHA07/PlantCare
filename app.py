@@ -207,7 +207,7 @@ def predict_disease(image_path):
 
     return predicted_class, confidence
 
-def get_smart_suggestions(disease_name):
+def get_smart_suggestions(disease_name, user_country=None):
     if disease_name.strip().lower() in HEALTHY_CONDITIONS:
         return {
             "description": "This plant appears to be healthy.",
@@ -216,8 +216,12 @@ def get_smart_suggestions(disease_name):
             "schedule": []
         }
 
+    location_instruction = f"The user is located in **{user_country}**. Please tailor the treatment recommendations (specifically fungicide/pesticide brand names or types) and prevention advice to be suitable for this region." if user_country else ""
+
     prompt = f"""
     Act as a plant pathologist for a banana plant diagnosed with '{disease_name}'.
+    {location_instruction}
+    
     Provide the following information clearly. Use markdown headings for each section.
 
     ### Description
@@ -235,16 +239,18 @@ def get_smart_suggestions(disease_name):
     For the date, use relative terms like "Today", "Tomorrow", "Day 7 (Week 1)", "Day 14 (Week 2)", "Continuous".
     Each row should represent a single, clear action. Do not use any asterisks or other markdown formatting inside the table cells.)
     """
+    
     try:
-        start_gemini = time.time() #change
+        start_gemini = time.time() 
         
         response = gemini_model.generate_content(prompt)
         
-        end_gemini = time.time() #change
-        print(f"3. Gemini API Call: {(end_gemini - start_gemini) * 1000:.2f} ms") #change
+        end_gemini = time.time()
+        print(f"3. Gemini API Call: {(end_gemini - start_gemini) * 1000:.2f} ms")
         
         text = response.text
         
+        # Regex parsing
         description = re.search(r"### Description\s*\n(.*?)\n### Treatment Plan", text, re.DOTALL)
         treatment = re.search(r"### Treatment Plan\s*\n(.*?)\n### Prevention", text, re.DOTALL)
         prevention = re.search(r"### Prevention\s*\n(.*?)\n### Generated Treatment Schedule", text, re.DOTALL)
@@ -455,16 +461,21 @@ def register():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
+        
     if request.method == 'POST':
-        email = request.form.get('email')
+        email_input = request.form.get('email').strip()
         password = request.form.get('password')
-        user_data = users_collection.find_one({'email': email})
+        user_data = users_collection.find_one({
+            'email': {'$regex': f'^{re.escape(email_input)}$', '$options': 'i'}
+        })
+        
         if user_data and bcrypt.check_password_hash(user_data['password'], password):
             user = User(user_data)
             login_user(user)
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid email or password.', 'error')
+            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -579,14 +590,18 @@ def diagnose():
         if file:
             filename = secure_filename(file.filename)
             if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
-             flash('Invalid file format. Please upload an image.', 'error')
-             return redirect(request.url)
+                flash('Invalid file format. Please upload an image.', 'error')
+                return redirect(request.url)
+            
             filepath = os.path.join('static', 'uploads', filename)
             file.save(filepath)
             
             db_image_path = os.path.join('uploads', filename).replace("\\", "/")
+            
+            # Get Prediction
             disease_name, confidence = predict_disease(filepath)
-            suggestions = get_smart_suggestions(disease_name)
+            
+            suggestions = get_smart_suggestions(disease_name, current_user.country)
             
             new_diagnosis = {
                 'user_id': ObjectId(current_user.id),
@@ -700,6 +715,53 @@ def logbook():
         if date_query:
             query['timestamp'] = date_query
 
+    # --- NEW: Aggregation for Charts ---
+    # 1. Bar Chart: Disease Distribution (Counts per disease)
+    pipeline_dist = [
+        {"$match": query},
+        {"$group": {"_id": "$disease_name", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    dist_results = list(diagnoses_collection.aggregate(pipeline_dist))
+    
+    chart_labels = [d['_id'] for d in dist_results]
+    chart_counts = [d['count'] for d in dist_results]
+
+    # 2. Line Chart: Health Trends (ONLY Follow-up Results)
+    
+    # Create a specific query for the Trend Chart
+    trend_query = query.copy()
+    # This ensures we only fetch records that ARE follow-ups (have a parent ID)
+    trend_query['parent_diagnosis_id'] = {'$exists': True} 
+
+    pipeline_trend = [
+        {"$match": trend_query}, # Use the new restricted query
+        {
+            "$group": {
+                "_id": {
+                    "$dateToString": { "format": "%Y-%m-%d", "date": "$timestamp" }
+                },
+                "healthy_count": {
+                    "$sum": {
+                        "$cond": [{ "$in": [{ "$toLower": "$disease_name" }, HEALTHY_CONDITIONS] }, 1, 0]
+                    }
+                },
+                "disease_count": {
+                    "$sum": {
+                        "$cond": [{ "$in": [{ "$toLower": "$disease_name" }, HEALTHY_CONDITIONS] }, 0, 1]
+                    }
+                }
+            }
+        },
+        {"$sort": {"_id": 1}} # Sort chronologically
+    ]
+    trend_results = list(diagnoses_collection.aggregate(pipeline_trend))
+    
+    trend_dates = [d['_id'] for d in trend_results]
+    trend_healthy = [d['healthy_count'] for d in trend_results]
+    trend_diseased = [d['disease_count'] for d in trend_results]
+
+    # Standard Pagination for Table
     total_entries = diagnoses_collection.count_documents(query)
     total_pages = (total_entries + per_page - 1) // per_page 
     
@@ -716,7 +778,13 @@ def logbook():
                            current_disease=filter_disease,
                            current_status=filter_status,
                            start_date=start_date,
-                           end_date=end_date)
+                           end_date=end_date,
+                           # Pass chart data
+                           chart_labels=chart_labels,
+                           chart_counts=chart_counts,
+                           trend_dates=trend_dates,
+                           trend_healthy=trend_healthy,
+                           trend_diseased=trend_diseased)
 
 @app.route('/delete_diagnosis/<diagnosis_id>', methods=['POST'])
 @login_required
