@@ -34,8 +34,9 @@
                     <li><a href="{{ url_for('calendar') }}" class="{{ 'active' if request.endpoint == 'calendar' else '' }}"><i class="fa-solid fa-calendar-days nav-icon"></i> Calendar</a></li>
                     <li><a href="{{ url_for('logbook') }}" class="{{ 'active' if request.endpoint == 'logbook' else '' }}"><i class="fa-solid fa-book nav-icon"></i> Logbook</a></li>
                     <li><a href="{{ url_for('account') }}" class="{{ 'active' if request.endpoint == 'account' else '' }}"><i class="fa-solid fa-user-gear nav-icon"></i> Account</a></li>
+                    {% if current_user.role != 'admin' %}
                     <li><a href="{{ url_for('about') }}" class="{{ 'active' if request.endpoint == 'about' else '' }}"><i class="fa-solid fa-circle-info nav-icon"></i> About Us</a></li>
-
+                    {% endif %}
                     {% if current_user.role == 'admin' %}
                     <li><a href="{{ url_for('admin_users') }}" class="{{ 'active' if request.endpoint == 'admin_users' else '' }}"><i class="fa-solid fa-users-cog nav-icon"></i> User Mgmt</a></li>
                     <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint == 'admin_feedback' else '' }}"><i class="fa-solid fa-comments nav-icon"></i> Feedback</a></li>

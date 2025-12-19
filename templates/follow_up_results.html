@@ -1,6 +1,38 @@
 {% extends "layout.html" %}
 {% block title %}Follow-up Report{% endblock %}
 
+{% block head_extra %}
+<style>
+    .comparison-container {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap; 
+        margin-top: 24px;
+    }
+
+    .comparison-card {
+        flex: 1;             
+        min-width: 300px;    
+        display: flex;
+        flex-direction: column;
+    }
+
+    .comparison-card img {
+        width: 100%;
+        height: 300px;      
+        object-fit: cover;   
+        border-radius: 8px;
+        margin-bottom: 16px;
+        border: 1px solid var(--border-color);
+    }
+
+    .comparison-summary {
+        margin-bottom: 0; 
+        border-left: 5px solid var(--primary-green);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <h1>Follow-up Report for: {{ original.plant_identifier }}</h1>
 <p class="subtitle">Comparing the diagnosis from {{ original.timestamp.strftime('%B %d') }} with today's results.</p>
@@ -11,33 +43,42 @@
 </div>
 
 <div class="comparison-container">
+    
     <div class="card comparison-card">
-        <h4>Before Treatment</h4>
-        <p class="comparison-date">{{ original.timestamp.strftime('%B %d, %Y') }}</p>
+        <h4 style="margin-bottom: 8px;">Before Treatment</h4>
+        <p class="comparison-date" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 12px;">
+            <i class="fa-regular fa-calendar"></i> {{ original.timestamp.strftime('%B %d, %Y') }}
+        </p>
+        
         <img src="{{ url_for('static', filename=original.image_path) }}" alt="Original image">
+        
         <div class="prediction-summary">
             <h5>Diagnosis: <strong>{{ original.disease_name }}</strong></h5>
             <p>Confidence: {{ original.confidence }}</p>
         </div>
     </div>
+
     <div class="card comparison-card">
-        <h4>After Treatment</h4>
-        <p class="comparison-date">{{ new.timestamp.strftime('%B %d, %Y') }}</p>
+        <h4 style="margin-bottom: 8px;">After Treatment</h4>
+        <p class="comparison-date" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 12px;">
+            <i class="fa-regular fa-calendar"></i> {{ new.timestamp.strftime('%B %d, %Y') }}
+        </p>
+        
         <img src="{{ url_for('static', filename=new.image_path) }}" alt="New image">
+        
         <div class="prediction-summary">
             <h5>Diagnosis: <strong>{{ new.disease_name }}</strong></h5>
             <p>Confidence: {{ new.confidence }}</p>
         </div>
         
-        <hr>
-        <div class="suggestion-section" style="margin-bottom: 0; margin-top: 16px;">
+        <hr style="margin-top: auto; margin-bottom: 16px;"> <div class="suggestion-section" style="margin-bottom: 0;">
             <h4>Is this new diagnosis helpful?</h4>
             <div class="log-actions" style="margin-top: 8px;">
                 <button class="btn btn-primary btn-confirm-accuracy" data-diagnosis-id="{{ new._id }}">
-                    <i class="fa-solid fa-thumbs-up"></i> Yes, it's accurate
+                    <i class="fa-solid fa-thumbs-up"></i> Yes
                 </button>
                 <button class="btn btn-danger btn-report-inaccuracy" data-diagnosis-id="{{ new._id }}">
-                    <i class="fa-solid fa-flag"></i> No, report inaccuracy
+                    <i class="fa-solid fa-flag"></i> No
                 </button>
             </div>
         </div>

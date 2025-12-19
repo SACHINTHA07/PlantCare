@@ -43,6 +43,117 @@
     </form>
 </div>
 
+{% if chart_labels|length > 0 %}
+    <div class="dashboard-grid" style="margin-bottom: 24px;">
+        <div class="card">
+            <div class="card-header">
+                <h3>Disease Distribution</h3>
+                <button onclick="downloadChart('diseaseBarChart', 'Disease_Distribution')" class="btn-download">
+                    <i class="fa-solid fa-download"></i> Save Image
+                </button>
+            </div>
+            <div class="chart-container" style="position: relative; height: 250px;">
+                <canvas id="diseaseBarChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Recovery Trends (Follow-ups Only)</h3> 
+                <button onclick="downloadChart('healthLineChart', 'Health_Trends')" class="btn-download">
+                    <i class="fa-solid fa-download"></i> Save Image
+                </button>
+            </div>
+            <div class="chart-container" style="position: relative; height: 250px;">
+                <canvas id="healthLineChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Disease Distribution Bar Chart
+        const ctxBar = document.getElementById('diseaseBarChart').getContext('2d');
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_labels | tojson }},
+                datasets: [{
+                    label: 'Count',
+                    data: {{ chart_counts | tojson }},
+                    backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                    borderColor: '#4CAF50',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Health Trend Line Chart
+        const ctxLine = document.getElementById('healthLineChart').getContext('2d');
+        new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: {{ trend_dates | tojson }},
+                datasets: [
+                    {
+                        label: 'Healthy',
+                        data: {{ trend_healthy | tojson }},
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Diseased',
+                        data: {{ trend_diseased | tojson }},
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+
+        // Download Function
+        function downloadChart(canvasId, filename) {
+            const originalCanvas = document.getElementById(canvasId);
+            
+            const tempCanvas = document.createElement('canvas');
+            const ctx = tempCanvas.getContext('2d');
+            
+            tempCanvas.width = originalCanvas.width;
+            tempCanvas.height = originalCanvas.height;
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+            ctx.drawImage(originalCanvas, 0, 0);
+
+            const link = document.createElement('a');
+            link.href = tempCanvas.toDataURL('image/png');
+            link.download = filename + '.png';
+            link.click();
+        }
+        
+    </script>
+    {% endif %}
+
 <div class="logbook-container">
     {% for diagnosis in diagnoses %}
     <div class="card log-item">
